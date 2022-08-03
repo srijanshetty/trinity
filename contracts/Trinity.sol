@@ -9,21 +9,36 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 // Using errors is cheaper than storing strings
 error Trinity__NotEnoughEnoughSupplied();
-error Trinity__InvalidVerifier();
+error Trinity__InvalidValidator();
 
 
 contract Trinity is Ownable {
-    // Employers pay to enlist to the contract by paying 0.01 ETH
-    // Verifiers are added by the owner of the contract
-    // Candidates are hidden from the public
-    // Issue SBTs for each skill a candidate has by the verifier
-
     // Out of Scope:
-    // - We assume a verifier can verify for any skill
+    // - We assume a validator can verify for any skill
+    // - Use SBT instead of NFT
+    // - Have a governance vote to add validator
 
-    // TODO:
-    // 1. How do we know a candidate is hired?
-    // - Do we allow verifiers to track the candidates they have hired or off-chain?
+    // Contract work:
+    // - Employers pay to enlist to the contract by paying 0.01 ETH
+    // - Validators are added by the owner of the contract
+    // - Issue NFT for each skill a candidate has by the validator
+    // - Candidates are hidden from the public
+    // - Payout on end of interview called
+
+    // FE:
+    // - Candidate information and indexing
+    //   - Skills submission portal
+    //   - Use magic for login for candidates?
+    // - Validator login
+    //   - Ability to get candidates and schedule interview
+    //   - Track process
+    // - Employee login
+    //   - Ability to get candidates and schedule interview
+    //   - Track process
+    // BE:
+    // - Module for tracking interviews
+    // - Module for indexing candidates
+    // - Module to call endInterview
 
     // State
     uint256 private immutable i_entranceFee;
@@ -31,13 +46,14 @@ contract Trinity is Ownable {
     address payable[] private s_employers;
     mapping(address => uint256) private s_employersStake;
 
-    address payable[] private s_verifiers;
-    mapping(address => uint8) private s_verifiersList;
+    address payable[] private s_validators;
+    mapping(address => uint8) private s_validatorsList;
+    mapping(address => uint256) private s_validatorsStake;
 
     // Off-chain events
-    event NewVerifier(address payable verifier);
+    event NewValidator(address payable validator);
     event NewEmployer(address employer);
-    event SkillCertificateIssued(address candidate, string skill, address verifier);
+    event SkillCertificateIssued(address candidate, string skill, address validator);
 
 
     constructor(uint256 _entranceFee) {
@@ -54,7 +70,7 @@ contract Trinity is Ownable {
         }
 
         // TODO: Should we also keep track of candidates they have?
-        // Update count of candidates in consideration and ensure it's only 1 per 0.01 ETH
+        // Off-chain, Update count of candidates in consideration and ensure it's only 1 per 0.01 ETH
 
         // Keep track of all employers and also keep track of their state
         s_employers.push(payable(msg.sender));
@@ -64,33 +80,38 @@ contract Trinity is Ownable {
         emit NewEmployer(msg.sender);
     }
 
-    function isVerifier(address _verifier) public view returns (bool) {
-        return s_verifiersList[_verifier] != 0;
+    function isValidator(address _validator) public view returns (bool) {
+        return s_validatorsList[_validator] != 0;
     }
 
-    // Out of Scope:
-    // We allow verifiers to verify for all skills
+    function addValidator(address validator) public onlyOwner {
+        // Track all the validators
+        s_validators.push(payable(validator));
+
+        // This is used to check validators
+        s_validatorsStake[msg.sender] = 1;
+
+        // TODO: Issue NFT to validators?
+
+        // Emit an event for the new validator
+        emit NewValidator(payable(validator));
+    }
+
+    // TODO: Limit validators to only certain skills and not all skills
     function issueSkillCertificate(address candidate, string memory skill) public {
-        // Ensure that only a valid verifier can call this
-        if (!isVerifier(msg.sender)) {
-            revert Trinity__InvalidVerifier();
+        // Ensure that only a valid validator can call this
+        if (!isValidator(msg.sender)) {
+            revert Trinity__InvalidValidator();
         }
 
-        // Issue SBT to candidate
-        // SBT will have details of the verifier as well.
+        // FIXME: Issue NFT to candidate
+        // NFT will have details of the validator as well.
 
         // Offchain events
         emit SkillCertificateIssued(candidate, skill, msg.sender);
     }
 
-    function addVerifier(address verifier) public onlyOwner {
-        // Track all the verifiers
-        s_verifiers.push(payable(verifier));
-
-        // This is used to check verifiers
-        s_verifiersList[msg.sender] = 1;
-
-        // Emit an event for the new verifier
-        emit NewVerifier(payable(verifier));
+    // FIXME: Write this function
+    function endInterview() public onlyOwner view {
     }
 }
