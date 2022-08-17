@@ -11,7 +11,6 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 error Trinity__NotEnoughEnoughSupplied();
 error Trinity__InvalidValidator();
 
-
 contract Trinity is Ownable {
     // Out of Scope:
     // - We assume a validator can verify for any skill
@@ -51,9 +50,9 @@ contract Trinity is Ownable {
     mapping(address => uint256) private s_validatorsStake;
 
     // Off-chain events
-    event NewValidator(address payable validator);
-    event NewEmployer(address employer);
-    event SkillCertificateIssued(address candidate, string skill, address validator);
+    event ValidatorAdded(address payable indexed validator);
+    event EmployerEnlisted(address indexed employer);
+    event SkillCertificateIssued(address indexed candidate, string indexed skill, address indexed validator);
 
 
     constructor(uint256 _entranceFee) {
@@ -77,7 +76,7 @@ contract Trinity is Ownable {
         s_employersStake[payable(msg.sender)] += msg.value;
 
         // Emit the event for off-chain consumption
-        emit NewEmployer(msg.sender);
+        emit EmployerEnlisted(msg.sender);
     }
 
     function isValidator(address _validator) public view returns (bool) {
@@ -94,7 +93,7 @@ contract Trinity is Ownable {
         // TODO: Issue NFT to validators?
 
         // Emit an event for the new validator
-        emit NewValidator(payable(validator));
+        emit ValidatorAdded(payable(validator));
     }
 
     // TODO: Limit validators to only certain skills and not all skills
@@ -113,5 +112,8 @@ contract Trinity is Ownable {
 
     // FIXME: Write this function
     function endInterview() public onlyOwner view {
+        // This function will just throw an error
+        // It will be called by the validator when the interview is over
+
     }
 }
