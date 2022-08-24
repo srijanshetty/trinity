@@ -6,6 +6,8 @@ import { ethers } from "hardhat";
 // advantage of Hardhat Network's snapshot functionality.
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 
+const ENTRANCE_FEE = 10;
+
 describe("Trinity", function () {
   // We define a fixture to reuse the same setup in every test. We use
   // loadFixture to run this setup once, snapshot that state, and reset Hardhat
@@ -18,7 +20,7 @@ describe("Trinity", function () {
     // To deploy our contract, we just have to call Trinity.deploy() and await
     // its deployed() method, which happens onces its transaction has been
     // mined.
-    const trinity = await Trinity.deploy(10);
+    const trinity = await Trinity.deploy(ENTRANCE_FEE);
 
     await trinity.deployed();
 
@@ -30,7 +32,7 @@ describe("Trinity", function () {
     it("getEntranceFee should return correct entrance fee", async function () {
       const { trinity } = await loadFixture(deployTokenFixture);
 
-      expect(await trinity.getEntranceFee()).to.equal(10);
+      expect(await trinity.getEntranceFee()).to.equal(ENTRANCE_FEE);
       expect(await trinity.getEntranceFee()).to.not.equal(12);
     });
   });
@@ -55,7 +57,6 @@ describe("Trinity", function () {
 
       expect(await trinity.isValidator(validator)).to.equal(true);
     });
-
     
     it("addValidator should emit Validator events", async function () {
       const { trinity, addr1 } = await loadFixture(deployTokenFixture);
@@ -74,6 +75,76 @@ describe("Trinity", function () {
       await expect(
         trinity.connect(addr1).addValidator(addr2.address)
       ).to.be.revertedWith("caller is not the owner");
+    });
+  });
+
+  describe("Employees", async function() {
+    it("isEmployer should return false for an invalid employer", async function () {
+      const { trinity, addr1 } = await loadFixture(deployTokenFixture);
+      const employer = addr1.address;
+
+      // First check a given address is a validator or not
+      expect(await trinity.isEmployer(employer)).to.equal(false);
+    });
+
+    it("isEmployer should return true for an valid employer", async function () {
+      const { trinity, addr1 } = await loadFixture(deployTokenFixture);
+      const validator = addr1.address;
+
+      // Run an enlistEmployeeTx and see if the employer gets added
+      const enlistEmployeeTx = await trinity.connect(addr1).enlistEmployer({
+        value: ENTRANCE_FEE,
+      });
+      await enlistEmployeeTx.wait();
+
+      expect(await trinity.isEmployer(validator)).to.equal(true);
+    });
+
+    it("enlistEmployee should enlist an Employee", async function () {
+      const { trinity, addr1 } = await loadFixture(deployTokenFixture);
+
+      // Enlist an employee with the minimum fees and check if transaction
+      // works
+      const enlistEmployeeTx = await trinity.connect(addr1).enlistEmployer({
+        value: ENTRANCE_FEE,
+      });
+      await enlistEmployeeTx.wait();
+
+      expect(await trinity.isEmployer(addr1.address)).to.equal(true);
+    });
+
+    it("enlistEmployee should fail if ENTRANCE_FEE is not correct", async function () {
+      const { trinity, addr1 } = await loadFixture(deployTokenFixture);
+
+      // Ensure that events are emitted when someone enlists themselves as an employee
+      await expect(trinity.connect(addr1).enlistEmployer({ value: 0 }))
+        .to.be.revertedWith("Trinity__NotEnoughEnoughSupplied");
+    });
+
+    it("enlistEmployee should emit Employee events", async function () {
+      const { trinity, addr1 } = await loadFixture(deployTokenFixture);
+
+      // Ensure that events are emitted when someone enlists themselves as an employee
+      await expect(trinity.connect(addr1).enlistEmployer({ value: ENTRANCE_FEE }))
+        .to.emit(trinity, "EmployerEnlisted")
+        .withArgs(addr1.address);
+    });
+
+    it("getEmployerStake should return the correct staked amount", async function () {
+      const { trinity, addr1 } = await loadFixture(deployTokenFixture);
+      const value = ENTRANCE_FEE * 2;
+
+      // First connect the contract to a new address
+      const connectedTrinity = trinity.connect(addr1);
+
+      // Stake an amount while enlisting and check if the amount is correct
+      const enlistEmployeeTx = await connectedTrinity.enlistEmployer({
+        value,
+      });
+      await enlistEmployeeTx.wait();
+
+      // The same amount needs to be returned
+      expect(await connectedTrinity.getEmployerStake()).to.equal(value);
     });
   });
 });

@@ -9,6 +9,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 // Using errors is cheaper than storing strings
 error Trinity__NotEnoughEnoughSupplied();
+error Trinity__InvalidEmployer();
 error Trinity__InvalidValidator();
 
 contract Trinity is Ownable {
@@ -47,7 +48,6 @@ contract Trinity is Ownable {
 
     address payable[] private s_validators;
     mapping(address => uint8) private s_validatorsList;
-    mapping(address => uint256) private s_validatorsStake;
 
     // Off-chain events
     event ValidatorAdded(address payable indexed validator);
@@ -61,22 +61,6 @@ contract Trinity is Ownable {
 
     function getEntranceFee() public view returns (uint256) {
         return i_entranceFee;
-    }
-
-    function enlistEmployer() public payable {
-        if (msg.value < i_entranceFee) {
-            revert Trinity__NotEnoughEnoughSupplied();
-        }
-
-        // TODO: Should we also keep track of candidates they have?
-        // Off-chain, Update count of candidates in consideration and ensure it's only 1 per 0.01 ETH
-
-        // Keep track of all employers and also keep track of their state
-        s_employers.push(payable(msg.sender));
-        s_employersStake[payable(msg.sender)] += msg.value;
-
-        // Emit the event for off-chain consumption
-        emit EmployerEnlisted(msg.sender);
     }
 
     function isValidator(address _validator) public view returns (bool) {
@@ -96,6 +80,37 @@ contract Trinity is Ownable {
 
         // Emit an event for the new validator
         emit ValidatorAdded(payable(_validator));
+    }
+
+    // Check if a given address is an employer or not
+    function isEmployer(address _employer) public view returns (bool) {
+        return s_employersStake[_employer] != 0;
+    }
+
+    // Return the amount staked by an employer, only a valid employer
+    // can call this function
+    function getEmployerStake() public view returns (uint256) {
+        if (!isEmployer(msg.sender)) {
+            revert Trinity__InvalidEmployer();
+        }
+
+        return s_employersStake[msg.sender];
+    }
+
+    function enlistEmployer() public payable {
+        if (msg.value < i_entranceFee) {
+            revert Trinity__NotEnoughEnoughSupplied();
+        }
+
+        // TODO: Should we also keep track of candidates they have?
+        // Off-chain, Update count of candidates in consideration and ensure it's only 1 per 0.01 ETH
+
+        // Keep track of all employers and also keep track of their state
+        s_employers.push(payable(msg.sender));
+        s_employersStake[payable(msg.sender)] += msg.value;
+
+        // Emit the event for off-chain consumption
+        emit EmployerEnlisted(msg.sender);
     }
 
     // TODO: Limit validators to only certain skills and not all skills
