@@ -15,7 +15,7 @@ async function main() {
 
   // We get the contract to deploy
   const Trinity = await ethers.getContractFactory("Trinity");
-  const trinity = await Trinity.deploy("Hello, Hardhat!");
+  const trinity = await Trinity.deploy(10);
 
   await trinity.deployed();
 
