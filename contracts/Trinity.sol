@@ -83,17 +83,19 @@ contract Trinity is Ownable {
         return s_validatorsList[_validator] != 0;
     }
 
-    function addValidator(address validator) public onlyOwner {
+    function addValidator(address _validator) public onlyOwner {
         // Track all the validators
-        s_validators.push(payable(validator));
+        console.log(_validator);
+
+        s_validators.push(payable(_validator));
 
         // This is used to check validators
-        s_validatorsStake[msg.sender] = 1;
+        s_validatorsList[_validator] = 1;
 
         // TODO: Issue NFT to validators?
 
         // Emit an event for the new validator
-        emit ValidatorAdded(payable(validator));
+        emit ValidatorAdded(payable(_validator));
     }
 
     // TODO: Limit validators to only certain skills and not all skills
