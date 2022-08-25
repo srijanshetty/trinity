@@ -33,7 +33,7 @@ describe("Trinity", function () {
       const { trinity } = await loadFixture(deployTokenFixture);
 
       expect(await trinity.getEntranceFee()).to.equal(ENTRANCE_FEE);
-      expect(await trinity.getEntranceFee()).to.not.equal(12);
+      expect(await trinity.getEntranceFee()).to.not.equal(ENTRANCE_FEE * 2);
     });
   });
 
@@ -118,7 +118,7 @@ describe("Trinity", function () {
 
       // Ensure that events are emitted when someone enlists themselves as an employee
       await expect(trinity.connect(addr1).enlistEmployer({ value: 0 }))
-        .to.be.revertedWith("Trinity__NotEnoughEnoughSupplied");
+        .to.be.revertedWith("Trinity__NotEnoughStakeSupplied");
     });
 
     it("enlistEmployee should emit Employee events", async function () {
@@ -144,7 +144,7 @@ describe("Trinity", function () {
       await enlistEmployeeTx.wait();
 
       // The same amount needs to be returned
-      expect(await connectedTrinity.getEmployerStake()).to.equal(value);
+      expect(await connectedTrinity.getEmployerStake(addr1.address)).to.equal(value);
     });
   });
 });

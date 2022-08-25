@@ -5,7 +5,7 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 // Using errors is cheaper than storing strings
-error Trinity__NotEnoughEnoughSupplied();
+error Trinity__NotEnoughStakeSupplied();
 error Trinity__InvalidEmployer();
 error Trinity__InvalidValidator();
 
@@ -83,17 +83,17 @@ contract Trinity is Ownable {
 
     // Return the amount staked by an employer, only a valid employer
     // can call this function
-    function getEmployerStake() public view returns (uint256) {
-        if (!isEmployer(msg.sender)) {
+    function getEmployerStake(address _employer) public view returns (uint256) {
+        if (!isEmployer(_employer)) {
             revert Trinity__InvalidEmployer();
         }
 
-        return s_employersStake[msg.sender];
+        return s_employersStake[_employer];
     }
 
     function enlistEmployer() public payable {
         if (msg.value < i_entranceFee) {
-            revert Trinity__NotEnoughEnoughSupplied();
+            revert Trinity__NotEnoughStakeSupplied();
         }
 
         // TODO: Should we also keep track of candidates they have?
