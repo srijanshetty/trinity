@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.4;
 
-// Import this file to use console.log
-import "hardhat/console.sol";
-
 // Import 3P libraries here
 import "@openzeppelin/contracts/access/Ownable.sol";
 
@@ -68,9 +65,6 @@ contract Trinity is Ownable {
     }
 
     function addValidator(address _validator) public onlyOwner {
-        // Track all the validators
-        console.log(_validator);
-
         s_validators.push(payable(_validator));
 
         // This is used to check validators
@@ -131,6 +125,5 @@ contract Trinity is Ownable {
     function endInterview() public onlyOwner view {
         // This function will just throw an error
         // It will be called by the validator when the interview is over
-
     }
 }
