@@ -6,7 +6,7 @@ import { ethers } from "hardhat";
 // advantage of Hardhat Network's snapshot functionality.
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 
-const ENTRANCE_FEE = 10;
+const ENTRANCE_FEE = ethers.utils.parseEther("0.001");
 
 describe("Trinity", function () {
   // We define a fixture to reuse the same setup in every test. We use
@@ -33,7 +33,7 @@ describe("Trinity", function () {
       const { trinity } = await loadFixture(deployTokenFixture);
 
       expect(await trinity.getEntranceFee()).to.equal(ENTRANCE_FEE);
-      expect(await trinity.getEntranceFee()).to.not.equal(ENTRANCE_FEE * 2);
+      expect(await trinity.getEntranceFee()).to.not.equal(ENTRANCE_FEE.add(ENTRANCE_FEE));
     });
   });
 
@@ -132,7 +132,7 @@ describe("Trinity", function () {
 
     it("getEmployerStake should return the correct staked amount", async function () {
       const { trinity, addr1 } = await loadFixture(deployTokenFixture);
-      const value = ENTRANCE_FEE * 2;
+      const value = ENTRANCE_FEE.add(ENTRANCE_FEE);
 
       // First connect the contract to a new address
       const connectedTrinity = trinity.connect(addr1);
@@ -145,6 +145,47 @@ describe("Trinity", function () {
 
       // The same amount needs to be returned
       expect(await connectedTrinity.getEmployerStake(addr1.address)).to.equal(value);
+    });
+  });
+
+  describe("KillSwitch", async function() {
+    it("only deployer should be able to killSwitch", async function () {
+      const { trinity, addr1 } = await loadFixture(deployTokenFixture);
+
+      // Try to killSwitch using addr1 which is not the owner of the 
+      // contract to test if onlyOwner works properly or not
+      await expect(
+        trinity.connect(addr1).killSwitch()
+      ).to.be.revertedWith("caller is not the owner");
+    });
+
+    it("killSwitch should flush the stake back to the owner", async function () {
+      const { trinity, owner, addr1 } = await loadFixture(deployTokenFixture);
+      const value = ENTRANCE_FEE.add(ENTRANCE_FEE);
+
+      // cache the original owner balance
+      const originalOwnerBalance = await owner.getBalance();
+
+      // First connect the contract to a new address
+      const connectedTrinity = trinity.connect(addr1);
+
+      // Stake an amount while enlisting and check if the amount is correct
+      const enlistEmployeeTx = await connectedTrinity.enlistEmployer({
+        value,
+      });
+      await enlistEmployeeTx.wait();
+
+      // Stake an amount while enlisting and check if the amount is correct
+      const killSwitchTx = await trinity.killSwitch();
+      await killSwitchTx.wait();
+
+      // Ensure that the amount of balance the owner has post transaction
+      // has increased
+      const newOwnerBalance = await owner.getBalance();
+      expect(newOwnerBalance.gt(originalOwnerBalance)).to.be.equal(true);
+
+      // Employers no longer will be an employer post flush
+      expect(await trinity.isEmployer(addr1.address)).to.equal(false);
     });
   });
 });

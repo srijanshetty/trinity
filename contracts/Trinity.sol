@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 error Trinity__NotEnoughStakeSupplied();
 error Trinity__InvalidEmployer();
 error Trinity__InvalidValidator();
+error Trinity__FlushFailed();
 
 contract Trinity is Ownable {
     // Out of Scope:
@@ -119,6 +120,27 @@ contract Trinity is Ownable {
 
         // Offchain events
         emit SkillCertificateIssued(candidate, skill, msg.sender);
+    }
+
+    // TODO: The owner should be a multisign or a DAO which
+    // controls all the funds
+    // Transfer all the stake amount to the owner to be redistributed
+    function killSwitch() onlyOwner public {
+        address payable receiver = payable(owner());
+
+        // Transfer all the staked amount in the contract to the
+        // owner of the contract
+        bool success = receiver.send(address(this).balance);
+        if (!success) {
+            revert Trinity__FlushFailed();
+        }
+
+        // Zero out all the stakes of the employers and remove
+        // all employers from the list
+        for (uint256 i = 0; i < s_employers.length; i++) {
+            s_employersStake[s_employers[i]] = 0;
+        }
+        s_employers = new address payable[](0);
     }
 
     // FIXME: Write this function

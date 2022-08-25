@@ -1,5 +1,3 @@
-import { ethers } from 'hardhat';
-
 type networkConfigType = {
   [key: string]: {
     ethFee: string;
