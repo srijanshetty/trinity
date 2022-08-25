@@ -101,8 +101,14 @@ contract Trinity is Ownable {
         // Off-chain, Update count of candidates in consideration and ensure it's only 1 per 0.01 ETH
 
         // Keep track of all employers and also keep track of their state
-        s_employers.push(payable(msg.sender));
-        s_employersStake[payable(msg.sender)] += msg.value;
+        if (isEmployer(msg.sender)) {
+            // Update the stake and don't readd to employers list
+            s_employersStake[msg.sender] += msg.value;
+        } else {
+            // First time this function is called
+            s_employers.push(payable(msg.sender));
+            s_employersStake[msg.sender] = msg.value;
+        }
 
         // Emit the event for off-chain consumption
         emit EmployerEnlisted(msg.sender);
