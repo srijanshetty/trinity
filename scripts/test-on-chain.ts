@@ -4,7 +4,8 @@
 // When running the script with `npx hardhat run <script>` you'll find the Hardhat
 // Runtime Environment's members available in the global scope.
 import hre, { ethers } from "hardhat";
-import NETWORK_CONFIG from "./constants";
+
+import NETWORK_CONFIG from './constants';
 
 async function main() {
   // Hardhat always runs the compile task when running scripts with its command
@@ -13,12 +14,12 @@ async function main() {
   // If this script is run directly using `node` you may want to call compile
   // manually to make sure everything is compiled
   // await hre.run('compile');
-  //
+
   const chainId = await hre.getChainId();
 
   // We get the contract to deploy
-  const Trinity = await ethers.getContractFactory("Trinity");
-  const trinity = await Trinity.deploy(ethers.utils.parseEther(NETWORK_CONFIG[chainId].ethFee));
+  const Trinity = await ethers.getContractAt("Trinity", NETWORK_CONFIG[chainId].contract);
+  const trinity = await Trinity.deployed();
 
   await trinity.deployed();
 
