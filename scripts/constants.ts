@@ -10,6 +10,10 @@ const NETWORK_CONFIG: networkConfigType = {
     ethFee: "0.01",
     contract: String(process.env.KOVAN_CONTRACT),
   },
+  "31337": {
+    ethFee: "0.01",
+    contract: String(process.env.KOVAN_CONTRACT),
+  }
 };
 
 export default NETWORK_CONFIG;
