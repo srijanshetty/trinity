@@ -3,6 +3,9 @@ pragma solidity ^0.8.4;
 
 // Import 3P libraries here
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/Counters.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 
 // Using errors is cheaper than storing strings
 error Trinity__NotEnoughStakeSupplied();
@@ -10,7 +13,7 @@ error Trinity__InvalidEmployer();
 error Trinity__InvalidValidator();
 error Trinity__FlushFailed();
 
-contract Trinity is Ownable {
+contract Trinity is Ownable, ERC721URIStorage {
     // Out of Scope:
     // - We assume a validator can verify for any skill
     // - Use SBT instead of NFT
@@ -47,31 +50,40 @@ contract Trinity is Ownable {
     address payable[] private s_validators;
     mapping(address => uint8) private s_validatorsList;
 
+    // Counters used for SkillNFTs
+    using Counters for Counters.Counter;
+    Counters.Counter private s_skillNFTIds;
+
     // Off-chain events
     event ValidatorAdded(address payable indexed validator);
     event EmployerEnlisted(address indexed employer);
-    event SkillCertificateIssued(address indexed candidate, string indexed skill, address indexed validator);
+    event SkillNFTIssued(
+        address indexed candidate,
+        address indexed validator,
+        string indexed skill
+    );
 
-
-    constructor(uint256 _entranceFee) {
+    constructor(uint256 _entranceFee) ERC721("Trinity NFT", "TRINITY") {
         i_entranceFee = _entranceFee;
     }
 
+    // Get the entrance fee for the contract which will used by employers
+    // to fetch cnadidates
     function getEntranceFee() public view returns (uint256) {
         return i_entranceFee;
     }
 
+    // Check if a given address is a validator or not
     function isValidator(address _validator) public view returns (bool) {
         return s_validatorsList[_validator] != 0;
     }
 
+    // Only the owner can add a validator who is then given the ability to issue skills
     function addValidator(address _validator) public onlyOwner {
         s_validators.push(payable(_validator));
 
         // This is used to check validators
         s_validatorsList[_validator] = 1;
-
-        // TODO: Issue NFT to validators?
 
         // Emit an event for the new validator
         emit ValidatorAdded(payable(_validator));
@@ -82,8 +94,7 @@ contract Trinity is Ownable {
         return s_employersStake[_employer] != 0;
     }
 
-    // Return the amount staked by an employer, only a valid employer
-    // can call this function
+    // Return the amount staked by an employer, only a valid employer can call this function
     function getEmployerStake(address _employer) public view returns (uint256) {
         if (!isEmployer(_employer)) {
             revert Trinity__InvalidEmployer();
@@ -92,20 +103,21 @@ contract Trinity is Ownable {
         return s_employersStake[_employer];
     }
 
+    // This is the staking function called by employers to stake entranceFee in
+    // order for them to be able to find a candidate to be hired
     function enlistEmployer() public payable {
+        // revert if the amount sent is lesser than the entrance fee
         if (msg.value < i_entranceFee) {
             revert Trinity__NotEnoughStakeSupplied();
         }
-
-        // TODO: Should we also keep track of candidates they have?
-        // Off-chain, Update count of candidates in consideration and ensure it's only 1 per 0.01 ETH
 
         // Keep track of all employers and also keep track of their state
         if (isEmployer(msg.sender)) {
             // Update the stake and don't readd to employers list
             s_employersStake[msg.sender] += msg.value;
         } else {
-            // First time this function is called
+            // when called the first time, track the employers
+            // in an array
             s_employers.push(payable(msg.sender));
             s_employersStake[msg.sender] = msg.value;
         }
@@ -115,17 +127,23 @@ contract Trinity is Ownable {
     }
 
     // TODO: Limit validators to only certain skills and not all skills
-    function issueSkillCertificate(address candidate, string memory skill) public {
+    // TODO: The issued NFT should have the details of the validator
+    function issueSkillNFT(address _candidate, string memory _skill) public {
         // Ensure that only a valid validator can call this
         if (!isValidator(msg.sender)) {
             revert Trinity__InvalidValidator();
         }
 
-        // FIXME: Issue NFT to candidate
-        // NFT will have details of the validator as well.
+        // Increment the internal counter for tokens
+        s_skillNFTIds.increment();
+        uint256 newItemId = s_skillNFTIds.current();
 
-        // Offchain events
-        emit SkillCertificateIssued(candidate, skill, msg.sender);
+        // Mint token, update the URI and return tokenId
+        _safeMint(_candidate, newItemId);
+        _setTokenURI(newItemId, _skill);
+
+        // Offchain events to indicate that a token has been issued
+        emit SkillNFTIssued(_candidate, msg.sender, _skill);
     }
 
     // TODO: The owner should be a multisign or a DAO which

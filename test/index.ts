@@ -37,8 +37,8 @@ describe("Trinity", function () {
     });
   });
 
-  describe("Validators", async function() {
-    it("isValidator should return false for an invalid validator", async function () {
+  describe("isValidator", async function() {
+    it("should return false for an invalid validator", async function () {
       const { trinity, addr1 } = await loadFixture(deployTokenFixture);
       const validator = addr1.address;
 
@@ -46,7 +46,7 @@ describe("Trinity", function () {
       expect(await trinity.isValidator(validator)).to.equal(false);
     });
 
-    it("isValidator should return true for an valid validator", async function () {
+    it("should return true for an valid validator", async function () {
       const { trinity, addr1 } = await loadFixture(deployTokenFixture);
       const validator = addr1.address;
 
@@ -57,8 +57,10 @@ describe("Trinity", function () {
 
       expect(await trinity.isValidator(validator)).to.equal(true);
     });
+  });
     
-    it("addValidator should emit Validator events", async function () {
+  describe("addValidator", async function() {
+    it("should emit Validator events", async function () {
       const { trinity, addr1 } = await loadFixture(deployTokenFixture);
 
       // Ensure that events are emitted when we add a validator
@@ -67,7 +69,7 @@ describe("Trinity", function () {
         .withArgs(addr1.address);
     });
 
-    it("only deployer should be able to add validators", async function () {
+    it("should be called only via deployer", async function () {
       const { trinity, addr1, addr2 } = await loadFixture(deployTokenFixture);
 
       // Try to add a validator using addr1 which is not the owner of the 
@@ -78,8 +80,8 @@ describe("Trinity", function () {
     });
   });
 
-  describe("Employees", async function() {
-    it("isEmployer should return false for an invalid employer", async function () {
+  describe("isEmployer", async function() {
+    it("should return false for an invalid employer", async function () {
       const { trinity, addr1 } = await loadFixture(deployTokenFixture);
       const employer = addr1.address;
 
@@ -99,8 +101,10 @@ describe("Trinity", function () {
 
       expect(await trinity.isEmployer(validator)).to.equal(true);
     });
+  });
 
-    it("enlistEmployee should enlist an Employee", async function () {
+  describe("enlistEmployer", async function() {
+    it("should enlist an Employee", async function () {
       const { trinity, addr1 } = await loadFixture(deployTokenFixture);
 
       // Enlist an employee with the minimum fees and check if transaction
@@ -113,7 +117,7 @@ describe("Trinity", function () {
       expect(await trinity.isEmployer(addr1.address)).to.equal(true);
     });
 
-    it("enlistEmployee should fail if ENTRANCE_FEE is not correct", async function () {
+    it("should fail if ENTRANCE_FEE is not correct", async function () {
       const { trinity, addr1 } = await loadFixture(deployTokenFixture);
 
       // Ensure that events are emitted when someone enlists themselves as an employee
@@ -121,7 +125,7 @@ describe("Trinity", function () {
         .to.be.revertedWith("Trinity__NotEnoughStakeSupplied");
     });
 
-    it("enlistEmployee should emit Employee events", async function () {
+    it("should emit Employee events", async function () {
       const { trinity, addr1 } = await loadFixture(deployTokenFixture);
 
       // Ensure that events are emitted when someone enlists themselves as an employee
@@ -129,8 +133,10 @@ describe("Trinity", function () {
         .to.emit(trinity, "EmployerEnlisted")
         .withArgs(addr1.address);
     });
+  });
 
-    it("getEmployerStake should return the correct staked amount", async function () {
+  describe("getEmployerStake", async function() {
+    it("should return the correct staked amount", async function () {
       const { trinity, addr1 } = await loadFixture(deployTokenFixture);
       const value = ENTRANCE_FEE.add(ENTRANCE_FEE);
 
@@ -148,8 +154,63 @@ describe("Trinity", function () {
     });
   });
 
-  describe("KillSwitch", async function() {
-    it("only deployer should be able to killSwitch", async function () {
+  describe("issueSkillNFT", function() {
+    it("should be called only via a validator", async function () {
+      const { trinity, addr1, addr2 } = await loadFixture(deployTokenFixture);
+      const metadata = "https://opensea-creatures-api.herokuapp.com/api/creature/1" //Random metadata url
+
+      // Try to add a validator using addr1 which is not the owner of the 
+      // contract to test if onlyOwner works properly or not
+      await expect(
+        trinity.connect(addr1).issueSkillNFT(addr2.address, metadata)
+      ).to.be.revertedWith("Trinity__InvalidValidator");
+    });
+
+    it("should the contract be able to mint an NFT", async function () {
+      const { trinity, owner, addr1 } = await loadFixture(deployTokenFixture);
+
+      const metadata = "https://opensea-creatures-api.herokuapp.com/api/creature/1" //Random metadata url
+
+      // Add owner as a validator to issue skill NFTs
+      const setValidatorTx = await trinity.addValidator(owner.address);
+      await setValidatorTx.wait();
+
+      // Issue a skill NFT to addr1
+      const issueSkillNFTTx = await trinity.issueSkillNFT(addr1.address, metadata); // Minting the token
+      const tx = await issueSkillNFTTx.wait() // Waiting for the token to be minted
+
+      // Ensure that the transaction goes through
+      expect(tx).to.not.be.null;
+
+      if (!tx || !tx.events || !tx.events[0]) {
+        return;
+      }
+
+      // Check if the token has the correct metadata
+      const event = tx.events[0];
+      const tokenId = event?.args?.[2]?.toNumber() ?? 0; // Getting the tokenID
+      const tokenURI = await trinity.tokenURI(tokenId) // Using the tokenURI from ERC721 to retrieve de metadata
+      expect(tokenURI).to.be.equal(metadata); // Comparing and testing
+    });
+
+    it("should the contract be able to mint an NFT and emit events", async function () {
+      const { trinity, owner, addr1 } = await loadFixture(deployTokenFixture);
+
+      const metadata = "https://opensea-creatures-api.herokuapp.com/api/creature/1" //Random metadata url
+
+      // Add owner as a validator to issue skill NFTs
+      const setValidatorTx = await trinity.addValidator(owner.address);
+      await setValidatorTx.wait();
+
+      // Issue a skill NFT to addr1
+      await expect(trinity.issueSkillNFT(addr1.address, metadata))
+        .to.emit(trinity, "SkillNFTIssued")
+        .withArgs(addr1.address, owner.address, metadata);
+    });
+  });
+
+  describe("killSwitch", async function() {
+    it("should be called only via deployer", async function () {
       const { trinity, addr1 } = await loadFixture(deployTokenFixture);
 
       // Try to killSwitch using addr1 which is not the owner of the 
@@ -159,7 +220,7 @@ describe("Trinity", function () {
       ).to.be.revertedWith("caller is not the owner");
     });
 
-    it("killSwitch should flush the stake back to the owner", async function () {
+    it("should flush the balances back to the owner", async function () {
       const { trinity, owner, addr1 } = await loadFixture(deployTokenFixture);
       const value = ENTRANCE_FEE.add(ENTRANCE_FEE);
 
@@ -183,6 +244,24 @@ describe("Trinity", function () {
       // has increased
       const newOwnerBalance = await owner.getBalance();
       expect(newOwnerBalance.gt(originalOwnerBalance)).to.be.equal(true);
+    });
+
+    it("should reset all employers", async function () {
+      const { trinity, owner, addr1 } = await loadFixture(deployTokenFixture);
+      const value = ENTRANCE_FEE.add(ENTRANCE_FEE);
+
+      // First connect the contract to a new address
+      const connectedTrinity = trinity.connect(addr1);
+
+      // Stake an amount while enlisting and check if the amount is correct
+      const enlistEmployeeTx = await connectedTrinity.enlistEmployer({
+        value,
+      });
+      await enlistEmployeeTx.wait();
+
+      // Stake an amount while enlisting and check if the amount is correct
+      const killSwitchTx = await trinity.killSwitch();
+      await killSwitchTx.wait();
 
       // Employers no longer will be an employer post flush
       expect(await trinity.isEmployer(addr1.address)).to.equal(false);
