@@ -14,34 +14,7 @@ error Trinity__InvalidValidator();
 error Trinity__FlushFailed();
 
 contract Trinity is Ownable, ERC721URIStorage {
-    // Out of Scope:
-    // - We assume a validator can verify for any skill
-    // - Use SBT instead of NFT
-    // - Have a governance vote to add validator
-
-    // Contract work:
-    // - Employers pay to enlist to the contract by paying 0.01 ETH
-    // - Validators are added by the owner of the contract
-    // - Issue NFT for each skill a candidate has by the validator
-    // - Candidates are hidden from the public
-    // - Payout on end of interview called
-
-    // FE:
-    // - Candidate information and indexing
-    //   - Skills submission portal
-    //   - Use magic for login for candidates?
-    // - Validator login
-    //   - Ability to get candidates and schedule interview
-    //   - Track process
-    // - Employee login
-    //   - Ability to get candidates and schedule interview
-    //   - Track process
-    // BE:
-    // - Module for tracking interviews
-    // - Module for indexing candidates
-    // - Module to call endInterview
-
-    // State
+    // State for fees, validators and employers
     uint256 private immutable i_entranceFee;
 
     address payable[] private s_employers;
@@ -165,11 +138,5 @@ contract Trinity is Ownable, ERC721URIStorage {
             s_employersStake[s_employers[i]] = 0;
         }
         s_employers = new address payable[](0);
-    }
-
-    // FIXME: Write this function
-    function endInterview() public onlyOwner view {
-        // This function will just throw an error
-        // It will be called by the validator when the interview is over
     }
 }
