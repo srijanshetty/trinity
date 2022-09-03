@@ -14,7 +14,8 @@ dotenv.config();
 const PRIVATE_KEY = process.env.PRIVATE_KEY || "0x";
 
 const KOVAN_RPC_URL = process.env.KOVAN_RPC_URL || "";
-const MUMBAI_RPC_URL = process.env.POLYGON_MAINNET_RPC_URL || "";
+const MUMBAI_RPC_URL = process.env.MUMBAI_RPC_URL || "";
+const POLYGON_MAINNET_RPC_URL = process.env.POLYGON_MAINNET_RPC_URL || "";
 
 const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY || "";
 const POLYGONSCAN_API_KEY = process.env.POLYGONSCAN_API_KEY || "";
@@ -44,8 +45,14 @@ const config: HardhatUserConfig = {
       saveDeployments: true,
       chainId: 42,
     },
-    polygon: {
+    mumbai: {
       url: MUMBAI_RPC_URL,
+      accounts: PRIVATE_KEY !== undefined ? [PRIVATE_KEY] : [],
+      saveDeployments: true,
+      chainId: 80001,
+    },
+    polygon: {
+      url: POLYGON_MAINNET_RPC_URL,
       accounts: PRIVATE_KEY !== undefined ? [PRIVATE_KEY] : [],
       saveDeployments: true,
       chainId: 137,
@@ -84,6 +91,7 @@ const config: HardhatUserConfig = {
     // yarn hardhat verify --network <NETWORK> <CONTRACT_ADDRESS> <CONSTRUCTOR_PARAMETERS>
     apiKey: {
         kovan: ETHERSCAN_API_KEY,
+        polygonMumbai: POLYGONSCAN_API_KEY,
         polygon: POLYGONSCAN_API_KEY,
     },
   },

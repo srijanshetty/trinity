@@ -18,7 +18,7 @@ async function main() {
 
   // We get the contract to deploy
   const Trinity = await ethers.getContractFactory("Trinity");
-  const trinity = await Trinity.deploy(ethers.utils.parseEther(NETWORK_CONFIG[chainId].ethFee));
+  const trinity = await Trinity.deploy(ethers.utils.parseEther(NETWORK_CONFIG[chainId].fee));
 
   await trinity.deployed();
 
