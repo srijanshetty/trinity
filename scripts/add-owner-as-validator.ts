@@ -16,12 +16,16 @@ async function main() {
   // await hre.run('compile');
 
   const chainId = await hre.getChainId();
+  const [owner] = await ethers.getSigners();
 
   // We get the contract to deploy
   const Trinity = await ethers.getContractAt("Trinity", NETWORK_CONFIG[chainId].contract);
   const trinity = await Trinity.deployed();
 
   await trinity.deployed();
+
+  const tx = await trinity.addValidator(owner.address);
+  await tx.wait(4);
 
   console.log("Trinity deployed to:", trinity.address);
 }
